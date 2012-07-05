@@ -37,7 +37,7 @@ module JasperRails
     classpath << File::PATH_SEPARATOR + File.expand_path(jar)
   end
 
-  Rjb::load( classpath, ['-Djava.awt.headless=true','-Xms128M', '-Xmx256M'] )
+  Rjb::load( classpath, ['-Djava.awt.headless=true', '-Djdbc.drivers=com.mysql.jdbc.Driver', '-Xms128M', '-Xmx256M'] )
 
   JRException                 = Rjb::import 'net.sf.jasperreports.engine.JRException'
   JasperCompileManager        = Rjb::import 'net.sf.jasperreports.engine.JasperCompileManager'
@@ -52,6 +52,8 @@ module JasperRails
   ByteArrayInputStream        = Rjb::import 'java.io.ByteArrayInputStream'
   JavaString                  = Rjb::import 'java.lang.String'
   JFreeChart                  = Rjb::import 'org.jfree.chart.JFreeChart'
+  DriverManager               = Rjb::import 'java.sql.DriverManager'
+
 
   module Jasper
     module Rails
@@ -61,6 +63,7 @@ module JasperRails
         jrxml_file  = jasper_file.sub(/\.jasper$/, ".jrxml")
 
         begin
+          connection = DriverManager.getConnection("jdbc:mysql://localhost/sgo_development", "root", "")          
           # Convert the ruby parameters' hash to a java HashMap.
           # Pay attention that, for now, all parameters are converted to string!
           jasper_params = HashMap.new
@@ -83,7 +86,7 @@ module JasperRails
           end
 
           jasper_params.put(JRXPathQueryExecuterFactory.PARAMETER_XML_DATA_DOCUMENT, data_document)
-          jasper_print = JasperFillManager.fillReport(jasper_file, jasper_params)
+          jasper_print = JasperFillManager.fillReport(jasper_file, jasper_params, connection)
 
           # Export it!
           JasperExportManager._invoke('exportReportToPdf', 'Lnet.sf.jasperreports.engine.JasperPrint;', jasper_print)
